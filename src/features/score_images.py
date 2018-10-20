@@ -1,4 +1,5 @@
 import subprocess
+from subprocess import PIPE
 import requests
 import json
 import urllib
@@ -6,14 +7,16 @@ from PIL import ImageFile
 from multiprocessing import Pool as ProcessPool
 from tqdm import tqdm
 import numpy as np
+import random
 
-min_dim = 0
+NUM_IMAGES_KEEP = 3
+err_urls = []
 
-def get_keywords_all(urls, min_dim_l, num_workers):
-    global min_dim
 
+def get_keywords_all(urls, num_workers):
+
+    random.shuffle(urls)
     workers = ProcessPool(num_workers)
-    min_dim = min_dim_l
     count = 0
     results = np.array([])
     with tqdm(total=len(urls)) as pbar:
@@ -30,8 +33,8 @@ def get_keywords_all(urls, min_dim_l, num_workers):
 
 def get_keywords(url):
     print('Starting url: {url}'.format(url=url))
-    image_urls = scrap_image_urls(url)
-    image_urls = filter(lambda url: get_min_dimension(url) > min_dim, image_urls)
+    image_urls = list(scrap_image_urls(url))
+    image_urls = sorted(image_urls, key=lambda url: get_min_dimension(url), reverse=True)[:NUM_IMAGES_KEEP]
     data_points = map(lambda img: analyze_image(img), image_urls)
     data_points = list(map(lambda img: parse_data(img), data_points))
     data_points = [item for sublist in data_points for item in sublist]
@@ -47,12 +50,13 @@ def get_keywords(url):
     }
 
 def scrap_image_urls(url):
-    proc = subprocess.Popen(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=PIPE)
     if isinstance(proc, int):
-        print('ERRRRRRRRRRRRRRRRRRRRROR')
+        print('Really bad error with url: {url}'.format(url=url))
         return []
 
-    output = proc.stdout.decode('utf-8')
+    output, err = proc.communicate()
+    output = output.decode('utf-8')
     output_list = output.split('\n')
     return filter(lambda str: str.startswith('http'), output_list)
 
