@@ -35,7 +35,11 @@ def get_keywords(url):
     data_points = list(map(lambda img: analyze_image(img), image_urls))
     data_points = list(map(lambda img: parse_data(img), data_points))
     data_points = [item for sublist in data_points for item in sublist]
-    print('Done with url: {url}. Got {n} keywords.'.format(url=url, n=len(data_points)))
+
+    if len(data_points) == 0:
+        print('ERROR - URL failed: {url}.'.format(url=url, n=len(data_points)))
+    else:
+        print('Done with url: {url}. Got {n} keywords.'.format(url=url, n=len(data_points)))
 
     return {
         'img_train_data': data_points,
@@ -43,7 +47,7 @@ def get_keywords(url):
     }
 
 def scrap_image_urls(url):
-    proc = subprocess.run(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.call(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
     output = proc.stdout.decode('utf-8')
     output_list = output.split('\n')
     return filter(lambda str: str.startswith('http'), output_list)
@@ -69,7 +73,7 @@ def get_size(url):
         print('Unable to get image size for url: {img}.'.format(img=url))
         return -1, [-1, -1]
 
-    return size, None
+    return size, [-1, -1]
 
 def get_min_dimension(url):
     fsize, xy = get_size(url)
