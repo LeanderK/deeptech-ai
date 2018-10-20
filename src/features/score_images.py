@@ -6,4 +6,6 @@ def scrap_image_urls(url):
     output_list = output.split('\n')
     return list(filter(lambda str: str.startswith('http'), output_list))
 
+
+
 scrap_image_urls('https://www.baeckerei-sand.de/')
