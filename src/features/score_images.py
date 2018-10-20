@@ -8,19 +8,21 @@ from multiprocessing import Pool as ProcessPool
 from tqdm import tqdm
 import numpy as np
 import random
+from functools import partial
 
 NUM_IMAGES_KEEP = 3
 err_urls = []
 
 
-def get_keywords_all(urls, num_workers):
+def get_keywords_all(urls, num_workers, azure_key="fe06b4a3f2394b128be3686a3d72795c"):
 
     random.shuffle(urls)
     workers = ProcessPool(num_workers)
     count = 0
     results = np.array([])
     with tqdm(total=len(urls)) as pbar:
-        for result in tqdm(workers.imap_unordered(get_keywords, urls)):
+        func = partial(get_keywords, **{'azure_key': azure_key})
+        for result in tqdm(workers.imap_unordered(func, urls)):
             count += len(result)
             results = np.append(results, result)
             pbar.update()
@@ -31,11 +33,11 @@ def get_keywords_all(urls, num_workers):
     np.save(path, results)
     print('Done saving.')
 
-def get_keywords(url):
+def get_keywords(url, azure_key="fe06b4a3f2394b128be3686a3d72795c"):
     print('Starting url: {url}'.format(url=url))
     image_urls = list(scrap_image_urls(url))
     image_urls = sorted(image_urls, key=lambda url: get_min_dimension(url), reverse=True)[:NUM_IMAGES_KEEP]
-    data_points = map(lambda img: analyze_image(img), image_urls)
+    data_points = map(lambda img: analyze_image(img, azure_key), image_urls)
     data_points = list(map(lambda img: parse_data(img), data_points))
     data_points = [item for sublist in data_points for item in sublist]
 
@@ -87,13 +89,13 @@ def get_min_dimension(url):
     fsize, xy = get_size(url)
     return min(xy[0], xy[1])
 
-def analyze_image(image_url):
+def analyze_image(image_url, azure_key="fe06b4a3f2394b128be3686a3d72795c"):
     url = "https://westcentralus.api.cognitive.microsoft.com/vision/v2.0/analyze?visualFeatures=Categories,Tags,Description&details=Landmarks&language=en"
     data = {
         "url": image_url
     }
     headers = {
-        "Ocp-Apim-Subscription-Key": "fe06b4a3f2394b128be3686a3d72795c",
+        "Ocp-Apim-Subscription-Key": azure_key,
         "Content-Type": "application/json"
     }
     r = requests.post(url, data=json.dumps(data), headers=headers)
