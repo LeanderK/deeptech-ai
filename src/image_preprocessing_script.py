@@ -2,6 +2,7 @@ from src.features import build_features, score_images
 from src.data import load_data
 from src.util import init
 import click
+import os
 
 # Init project
 init.init()
@@ -19,13 +20,16 @@ init.init()
 @click.option("--start-index", default=0)
 @click.option("--end-index", default=-1)
 @click.option("--azure-key", default='efdb6416d7d34344b01f7fe6eec963d5')
-@click.option("--num-workers", default=3)
+@click.option("--num-workers", default=4)
 def main(companies_pickle_path, start_index, end_index, num_workers, azure_key):
     urls = load_data.load_pickle(companies_pickle_path)
     if end_index == -1:
         end_index = len(urls)
     url_batch = urls[start_index:end_index]
-    build_features.build_img_data(url_batch, num_workers=num_workers, azure_key=azure_key)
+    output_path = os.path.join("data", "processed")
+    os.makedirs(output_path, exist_ok=True)
+    output_path = os.path.join(output_path, '{}'.format(start_index))
+    build_features.build_img_data(url_batch, output_path, num_workers=num_workers, azure_key=azure_key)
 
 
 if __name__ == '__main__':
