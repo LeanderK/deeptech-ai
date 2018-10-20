@@ -22,18 +22,24 @@ def get_keywords_all(urls, min_dim_l, num_workers):
             results = np.append(results, result)
             pbar.update()
 
-    path = 'data/processed/img_data.npz'
+    path = 'data/processed/img_data.npy'
     print('Processed %d urls.' % count)
     print('Saving results to {path}'.format(path=path))
     np.save(path, results)
     print('Done saving.')
 
 def get_keywords(url):
+    print('Starting url: {url}'.format(url=url))
     image_urls = scrap_image_urls(url)
-    image_urls = list(filter(lambda url: get_min_dimension(url) > min_dim, image_urls))
-    data_points = list(map(lambda img: analyze_image(img), image_urls))
+    image_urls = filter(lambda url: get_min_dimension(url) > min_dim, image_urls)
+    data_points = map(lambda img: analyze_image(img), image_urls)
     data_points = list(map(lambda img: parse_data(img), data_points))
     data_points = [item for sublist in data_points for item in sublist]
+
+    if len(data_points) == 0:
+        print('ERROR - URL failed: {url}.'.format(url=url, n=len(data_points)))
+    else:
+        print('Done with url: {url}. Got {n} keywords.'.format(url=url, n=len(data_points)))
 
     return {
         'img_train_data': data_points,
@@ -41,7 +47,11 @@ def get_keywords(url):
     }
 
 def scrap_image_urls(url):
-    proc = subprocess.run(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
+    if isinstance(proc, int):
+        print('ERRRRRRRRRRRRRRRRRRRRROR')
+        return []
+
     output = proc.stdout.decode('utf-8')
     output_list = output.split('\n')
     return filter(lambda str: str.startswith('http'), output_list)
@@ -67,7 +77,7 @@ def get_size(url):
         print('Unable to get image size for url: {img}.'.format(img=url))
         return -1, [-1, -1]
 
-    return size, None
+    return size, [-1, -1]
 
 def get_min_dimension(url):
     fsize, xy = get_size(url)
