@@ -37,41 +37,45 @@ def get_keywords(url, azure_key="fe06b4a3f2394b128be3686a3d72795c"):
     print('Starting url: {url}'.format(url=url))
     image_urls = scrap_image_urls(url)
 
-    # Filter out SVGs and GIFs
-    image_urls = filter(lambda url: not url.endswith('svg'), image_urls)
-    image_urls = list(filter(lambda url: not url.endswith('gif'), image_urls))
+    try:
+        # Filter out SVGs and GIFs
+        image_urls = filter(lambda url: not url.endswith('svg'), image_urls)
+        image_urls = list(filter(lambda url: not url.endswith('gif'), image_urls))
 
-    # Sort by size and take 3 biggest
-    image_urls = sorted(image_urls, key=lambda url: get_min_dimension(url), reverse=True)[:NUM_IMAGES_KEEP]
+        # Sort by size and take 3 biggest
+        image_urls = sorted(image_urls, key=lambda url: get_min_dimension(url), reverse=True)[:NUM_IMAGES_KEEP]
 
-    # Analyze images with azure
-    data_points = map(lambda img: analyze_image(img, azure_key), image_urls)
-    data_points = list(map(lambda img: parse_data(img), data_points))
-    data_points = [item for sublist in data_points for item in sublist]
-
-    # If azure is full, wait and try again
-    counter = 0
-    while (len(image_urls) > 0 and len(data_points) == 0) and counter < 10:
-        print('Azure full, waiting {counter}... ({url})'.format(counter=counter, url=url))
-        counter += 1
-        time.sleep(7)
-
-        data_points = map(lambda img: analyze_image(img), image_urls)
+        # Analyze images with azure
+        data_points = map(lambda img: analyze_image(img, azure_key), image_urls)
         data_points = list(map(lambda img: parse_data(img), data_points))
         data_points = [item for sublist in data_points for item in sublist]
 
-    if counter == 10:
-        print('ERROR - Azure failed after {counter} tries: {url}'.format(counter=counter, url=url))
+        # If azure is full, wait and try again
+        counter = 0
+        while (len(image_urls) > 0 and len(data_points) == 0) and counter < 10:
+            print('Azure full, waiting {counter}... ({url})'.format(counter=counter, url=url))
+            counter += 1
+            time.sleep(7)
 
-    if len(data_points) == 0:
-        print('ERROR - URL failed: {url}.'.format(url=url, n=len(data_points)))
-    else:
-        print('Done with url: {url}. Got {n} keywords.'.format(url=url, n=len(data_points)))
+            data_points = map(lambda img: analyze_image(img), image_urls)
+            data_points = list(map(lambda img: parse_data(img), data_points))
+            data_points = [item for sublist in data_points for item in sublist]
 
-    return {
-        'img_train_data': data_points,
-        'url': url
-    }
+        if counter == 10:
+            print('ERROR - Azure failed after {counter} tries: {url}'.format(counter=counter, url=url))
+
+        if len(data_points) == 0:
+            print('ERROR - URL failed: {url}.'.format(url=url, n=len(data_points)))
+        else:
+            print('Done with url: {url}. Got {n} keywords.'.format(url=url, n=len(data_points)))
+
+        return {
+            'img_train_data': data_points,
+            'url': url
+        }
+    except Exception as e:
+        print('ERROR (fatal) - URL failed: {e}'.format(e=repr(e)))
+        return {}
 
 def scrap_image_urls(url):
     proc = subprocess.Popen(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=PIPE)

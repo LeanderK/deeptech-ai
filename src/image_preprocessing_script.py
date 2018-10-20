@@ -1,6 +1,6 @@
-from src.features import build_features, score_images
-from src.data import load_data
-from src.util import init
+from features import build_features, score_images
+from data import load_data
+from util import init
 import click
 import os
 
