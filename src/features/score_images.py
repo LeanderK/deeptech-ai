@@ -31,8 +31,8 @@ def get_keywords_all(urls, min_dim_l, num_workers):
 def get_keywords(url):
     print('Starting url: {url}'.format(url=url))
     image_urls = scrap_image_urls(url)
-    image_urls = list(filter(lambda url: get_min_dimension(url) > min_dim, image_urls))
-    data_points = list(map(lambda img: analyze_image(img), image_urls))
+    image_urls = filter(lambda url: get_min_dimension(url) > min_dim, image_urls)
+    data_points = map(lambda img: analyze_image(img), image_urls)
     data_points = list(map(lambda img: parse_data(img), data_points))
     data_points = [item for sublist in data_points for item in sublist]
 
@@ -47,7 +47,11 @@ def get_keywords(url):
     }
 
 def scrap_image_urls(url):
-    proc = subprocess.call(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
+    if isinstance(proc, int):
+        print('ERRRRRRRRRRRRRRRRRRRRROR')
+        return []
+
     output = proc.stdout.decode('utf-8')
     output_list = output.split('\n')
     return filter(lambda str: str.startswith('http'), output_list)
