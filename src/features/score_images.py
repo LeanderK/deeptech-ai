@@ -3,6 +3,42 @@ import requests
 import json
 import urllib
 from PIL import ImageFile
+from multiprocessing import Pool as ProcessPool
+from tqdm import tqdm
+import numpy as np
+
+min_dim = 0
+
+def get_keywords_all(urls, min_dim_l, num_workers):
+    global min_dim
+
+    workers = ProcessPool(num_workers)
+    min_dim = min_dim_l
+    count = 0
+    results = np.array([])
+    with tqdm(total=len(urls)) as pbar:
+        for result in tqdm(workers.imap_unordered(get_keywords, urls)):
+            count += len(result)
+            results = np.append(results, result)
+            pbar.update()
+
+    path = 'data/processed/img_data.npz'
+    print('Processed %d urls.' % count)
+    print('Saving results to {path}'.format(path=path))
+    np.save(path, results)
+    print('Done saving.')
+
+def get_keywords(url):
+    image_urls = scrap_image_urls(url)
+    image_urls = list(filter(lambda url: get_min_dimension(url) > min_dim, image_urls))
+    data_points = list(map(lambda img: analyze_image(img), image_urls))
+    data_points = list(map(lambda img: parse_data(img), data_points))
+    data_points = [item for sublist in data_points for item in sublist]
+
+    return {
+        'img_train_data': data_points,
+        'url': url
+    }
 
 def scrap_image_urls(url):
     proc = subprocess.run(['image-scraper --dump-urls {url}'.format(url=url)], shell=True, stdout=subprocess.PIPE)
@@ -70,13 +106,3 @@ def parse_data(img_json):
             })
 
     return result
-
-def get_keywords(url, min_dim):
-    image_urls = scrap_image_urls(url)
-    image_urls = list(filter(lambda url: get_min_dimension(url) > min_dim, image_urls))
-    data_points = list(map(lambda img: analyze_image(img), image_urls))
-    data_points = list(map(lambda img: parse_data(img), data_points))
-    return [item for sublist in data_points for item in sublist]
-
-
-get_keywords('https://www.baeckerei-sand.de', 300)
