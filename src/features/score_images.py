@@ -15,26 +15,9 @@ NUM_IMAGES_KEEP = 3
 err_urls = []
 
 
-def get_keywords_all(urls, num_workers, output_path='data/processed/img_data.npy', azure_key="fe06b4a3f2394b128be3686a3d72795c"):
-
-    workers = ProcessPool(num_workers)
-    count = 0
-    results = np.array([])
-    with tqdm(total=len(urls)) as pbar:
-        func = partial(get_keywords, **{'azure_key': azure_key})
-        for result in tqdm(workers.imap_unordered(func, urls)):
-            count += len(result)
-            results = np.append(results, result)
-            pbar.update()
-
-    path = output_path
-    print('Processed %d urls.' % count)
-    print('Saving results to {path}'.format(path=path))
-    np.save(path, results)
-    print('Done saving.')
 
 def get_keywords(url, azure_key="fe06b4a3f2394b128be3686a3d72795c"):
-    print('Starting url: {url}'.format(url=url))
+    print('Starting url: :{url}'.format(url=url))
     image_urls = scrap_image_urls(url)
 
     try:

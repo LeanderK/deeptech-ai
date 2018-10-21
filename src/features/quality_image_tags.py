@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import functools
 import glob
 
 STOP_LIST = ['', 'text']
@@ -11,10 +10,9 @@ def process_words(urls):
 
 def merge_image_data(urls):
     os.chdir("/mydir")
-    for file in glob.glob("*.txt"):
-        print(file)
-
     data = np.array([])
+    for file in glob.glob("*.txt"):
+
     for url in urls:
         batch_data = np.load(url)
         np.append(data, batch_data)
